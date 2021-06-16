@@ -35,6 +35,7 @@ load_rc_config ${name}
 [ -z "${emby_server_user}" ] && emby_server_user=emby
 [ -z "${emby_server_group}" ] && emby_server_group=emby
 [ -z "${emby_server_data_dir}" ] && emby_server_data_dir=/var/db/emby-server
+[ -z "${emby_server_ffdetect" ] && emby_server_ffdetect=/usr/local/lib/emby-server/bin/ffdetect"}
 [ -z "${emby_server_ffmpeg}" ] && emby_server_ffmpeg=/usr/local/lib/emby-server/bin/ffmpeg
 [ -z "${emby_server_ffprobe}" ] && emby_server_ffprobe=/usr/local/lib/emby-server/bin/ffprobe
 
@@ -42,6 +43,7 @@ load_rc_config ${name}
 : ${emby_server_user:="emby"}
 : ${emby_server_group:="emby"}
 : ${emby_server_data_dir:="/var/db/emby-server"}
+: ${emby_server_ffdetect:="/usr/local/lib/emby-server/bin/ffdetect"}
 : ${emby_server_ffmpeg:="/usr/local/lib/emby-server/bin/ffmpeg"}
 : ${emby_server_ffprobe:="/usr/local/lib/emby-server/bin/ffprobe"}
 
@@ -52,6 +54,7 @@ procname="/usr/local/bin/mono"
 command="/usr/sbin/daemon"
 command_args="-f -p ${pidfile} ${procname} /usr/local/lib/emby-server/system/EmbyServer.exe \
 	-os freebsd \
+	-ffdetect ${emby_server_ffdetect} \
 	-ffmpeg ${emby_server_ffmpeg} \
 	-ffprobe ${emby_server_ffprobe} \
 	-programdata ${emby_server_data_dir} \
@@ -71,4 +74,3 @@ emby_server_postcmd()
 }
 
 run_rc_command "$1"
-
