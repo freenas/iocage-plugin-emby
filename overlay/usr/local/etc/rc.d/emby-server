@@ -42,8 +42,8 @@ load_rc_config ${name}
 : ${emby_server_user:="emby"}
 : ${emby_server_group:="emby"}
 : ${emby_server_data_dir:="/var/db/emby-server"}
-: ${emby_server_ffmpeg:="/usr/local/bin/ffmpeg"}
-: ${emby_server_ffprobe:="/usr/local/bin/ffprobe"}
+: ${emby_server_ffmpeg:="/usr/local/lib/emby-server/bin/ffmpeg"}
+: ${emby_server_ffprobe:="/usr/local/lib/emby-server/bin/ffprobe"}
 
 export LD_LIBRARY_PATH=/usr/local/lib
 
