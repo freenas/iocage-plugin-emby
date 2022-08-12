@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# $FreeBSD$
-#
 # PROVIDE: emby-server
 # REQUIRE: LOGIN
 # KEYWORD: shutdown
@@ -9,66 +7,73 @@
 # Add the following lines to /etc/rc.conf.local or /etc/rc.conf
 # to enable this service:
 #
-# emby_server_enable: Set to yes to enable the emby-server service.
+# emby_server_enable:	Set to yes to enable the emby-server service.
 #			Default: no
-# emby_server_user: The user account used to run the emby-server daemon.
+# emby_server_user:	The user account used to run the emby-server daemon.
 #			This is optional, however do not specifically set this to an
 #			empty string as this will cause the daemon to run as root.
 #			Default: emby
-# emby_server_group: The group account used to run the emby-server daemon.
+# emby_server_group:	The group account used to run the emby-server daemon.
 #			This is optional, however do not specifically set this to an
 #			empty string as this will cause the daemon to run with group wheel.
 #			Default: emby
 # emby_server_data_dir: Directory where emby-server configuration
 #			data is stored.
 #			Default: /var/db/emby-server
-# emby_server_ffmpeg: Path of the ffmpeg binary.
-#			Default: %%PEFIX%%/lib/emby-server/bin/ffmpeg
-# emby_server_ffprobe: Path of the ffprobe binary.
-#			Default: %%PEFIX%%/lib/emby-server/bin/ffprobe
+# emby_server_ffdetect: Path of the ffdetect binary.
+#			Default: /usr/local/lib/emby-server/bin/ffdetect
+# emby_server_ffmpeg:	Path of the ffmpeg binary.
+#			Default: /usr/local/lib/emby-server/bin/ffmpeg
+# emby_server_ffprobe:	Path of the ffprobe binary.
+#			Default: /usr/local/lib/emby-server/bin/ffprobe
+# emby_server_pid: 	Path of the pid file.
+#			Default: /var/run/emby-server.pid
 
 . /etc/rc.subr
 name=emby_server
 rcvar=${name}_enable
 load_rc_config ${name}
 
-[ -z "${emby_server_user}" ] && emby_server_user=emby
-[ -z "${emby_server_group}" ] && emby_server_group=emby
-[ -z "${emby_server_data_dir}" ] && emby_server_data_dir=/var/db/emby-server
-[ -z "${emby_server_ffmpeg}" ] && emby_server_ffmpeg=/usr/local/bin/ffmpeg
-[ -z "${emby_server_ffprobe}" ] && emby_server_ffprobe=/usr/local/bin/ffprobe
-
 : ${emby_server_enable:="no"}
 : ${emby_server_user:="emby"}
 : ${emby_server_group:="emby"}
 : ${emby_server_data_dir:="/var/db/emby-server"}
+: ${emby_server_ffdetect:="/usr/local/lib/emby-server/bin/ffdetect"}
 : ${emby_server_ffmpeg:="/usr/local/lib/emby-server/bin/ffmpeg"}
 : ${emby_server_ffprobe:="/usr/local/lib/emby-server/bin/ffprobe"}
+: ${emby_server_pid:="/var/run/emby-server.pid"}
 
-export LD_LIBRARY_PATH=/usr/local/lib
-
-pidfile="/var/run/emby-server.pid"
-procname="/usr/local/bin/mono"
+pidfile="${emby_server_pid}"
+procname="/usr/local/lib/emby-server/system/EmbyServer"
 command="/usr/sbin/daemon"
-command_args="-f -p ${pidfile} ${procname} /usr/local/lib/emby-server/system/EmbyServer.exe \
+command_args="-f -p ${emby_server_pid} ${procname} \
 	-os freebsd \
+	-ffdetect ${emby_server_ffdetect} \
 	-ffmpeg ${emby_server_ffmpeg} \
 	-ffprobe ${emby_server_ffprobe} \
-	-programdata ${emby_server_data_dir} \
-	-updatepackage emby-server-freebsd_{version}_amd64.txz"
+	-programdata ${emby_server_data_dir}"
 
 start_precmd=emby_server_precmd
 emby_server_precmd()
 {
-	[ -f ${pidfile} ] || install -g ${emby_server_group} -o ${emby_server_user} -- /dev/null ${pidfile}
+	[ -f ${emby_server_pid} ] || install -g ${emby_server_group} -o ${emby_server_user} -- /dev/null ${emby_server_pid}
 	[ -d ${emby_server_data_dir} ] || install -d -g ${emby_server_group} -o ${emby_server_user} -- ${emby_server_data_dir}
+
+	# .NET 6+ use dual mode sockets to avoid the separate AF handling.
+	# disable .NET use of V6 if no ipv6 is configured.
+	# See https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=259194#c17
+	ifconfig | grep -q inet6
+	if [ $? == 1 ]; then
+		export DOTNET_SYSTEM_NET_DISABLEIPV6=1
+	fi
+
+	export LD_LIBRARY_PATH=/usr/local/lib/emby-server/lib:/usr/local/lib
 }
 
 stop_postcmd=emby_server_postcmd
 emby_server_postcmd()
 {
-	rm -f ${pidfile}
+	rm -f ${emby_server_pid}
 }
 
 run_rc_command "$1"
-
